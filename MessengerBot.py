@@ -1,55 +1,39 @@
-import inspect
-from optparse import OptionParser
-from pprint import pprint
-
-from MessageEvent import MessageEvent
 from CustomClient import CustomClient
+from MessageEvent import MessageEvent
 
 
 class MessengerBot:
     def __init__(self, client: CustomClient):
         self.client = client
-        self.client.set_action(self.validate, self.func)
+        self.client.set_action(self.validate)
 
     def validate(self, m_event: MessageEvent):
-        pass
-
-    def func(self, m_event: MessageEvent):
         pass
 
     def answer_back(self, m_event: MessageEvent, message: str):
         self.client.sendMessage(message, thread_id=m_event.thread_id, thread_type=m_event.thread_type)
 
 
-class CommandBot(MessengerBot):
-    def __init__(self, client: CustomClient, command: str):
-        super(CommandBot, self).__init__(client)
-        self.command = command
+class MultiCommandBot(MessengerBot):
+    def __init__(self, client):
+        super(MultiCommandBot, self).__init__(client)
+
+        self.commands = {"/{}".format('_'.join(method.split('_')[1:])): getattr(self, method) for method in dir(self) if
+                         callable(getattr(self, method)) if
+                         method.startswith("on_")}
 
     def validate(self, m_event: MessageEvent):
-        if m_event.message.lower().startswith(self.command):
-            m_event.message = ' '.join(m_event.message.split(' ')[1:])
-            return True
-        return False
-
-
-class MultiCommandBot:
-    def __init__(self):
-        pass
-        # a = inspect.getmembers(OptionParser, predicate=inspect.ismethod)
-
-    def on_draw(self, m_event: MessageEvent):
-
-        # pprint([method for method in inspect.getmembers(self)][-1])
-        a = inspect.getmembers(self)[-1]
-        print(inspect.ismethod(a))
-        # print([method for method in inspect.getmembers(self) if inspect.ismethod(method)])
-        # print(inspect.getmembers(OptionParser, predicate=inspect.ismethod))
-
-
-class Blackjack(CommandBot):
-    def __init__(self, client):
-        super(Blackjack, self).__init__(client, "/draw")
+        command = m_event.message.split(' ')[0]
+        if command in self.commands:
+            self.commands[command](m_event)
 
     def func(self, m_event: MessageEvent):
-        self.answer_back(m_event, m_event.message)
+        self.commands[m_event.message.split(' ')[0]](m_event)
+
+
+class Blackjack(MultiCommandBot):
+    def on_draw(self, m_event: MessageEvent):
+        print("in on draw", m_event.message)
+
+    def on_double(self, m_event: MessageEvent):
+        print("in double cards", m_event.message)

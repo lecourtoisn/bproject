@@ -19,11 +19,9 @@ class CustomClient(Client):
                   metadata=None, msg=None):
         if msg is None:
             msg = {}
-        message_event = MessageEvent(mid, author_id, message, thread_id, thread_type, ts, metadata, msg)
-        for validate, func in self.functions:
-            if validate(message_event):
-                func(message_event)
+        m_event = MessageEvent(mid, author_id, message, thread_id, thread_type, ts, metadata, msg)
+        for validate in self.functions:
+            validate(m_event)
 
-    def set_action(self, validate, func):
-        self.functions.append((validate, func))
-
+    def set_action(self, validate):
+        self.functions.append(validate)
