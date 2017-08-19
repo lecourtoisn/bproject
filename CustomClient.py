@@ -24,3 +24,7 @@ class CustomClient(Client):
     def onLoggedIn(self, email=None):
         with open("session.txt", "w") as file:
             json.dump(self.getSession(), file)
+
+    def get_author(self, author_id: str) -> dict:
+        user = self.fetchUserInfo(author_id)[author_id]
+        return user

@@ -24,9 +24,8 @@ class MultiCommandBot(MessengerBot):
                          if method.startswith("on_")}
 
     def validate(self, m_event: MessageEvent):
-        command = m_event.message.split(' ')[0]
+        command, *rest = m_event.message.split(' ')
+        m_event.message = " ".join(rest)
+        command = command.lower()
         if command in self.commands:
             self.commands[command](m_event)
-
-    def func(self, m_event: MessageEvent):
-        self.commands[m_event.message.split(' ')[0]](m_event)
