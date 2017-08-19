@@ -18,9 +18,10 @@ class MultiCommandBot(MessengerBot):
     def __init__(self, client):
         super(MultiCommandBot, self).__init__(client)
 
-        self.commands = {"/{}".format('_'.join(method.split('_')[1:])): getattr(self, method) for method in dir(self) if
-                         callable(getattr(self, method)) if
-                         method.startswith("on_")}
+        self.commands = {"/{}".format('_'.join(method.split('_')[1:])): getattr(self, method)
+                         for method in dir(self)
+                         if callable(getattr(self, method))
+                         if method.startswith("on_")}
 
     def validate(self, m_event: MessageEvent):
         command = m_event.message.split(' ')[0]
@@ -29,11 +30,3 @@ class MultiCommandBot(MessengerBot):
 
     def func(self, m_event: MessageEvent):
         self.commands[m_event.message.split(' ')[0]](m_event)
-
-
-class Blackjack(MultiCommandBot):
-    def on_draw(self, m_event: MessageEvent):
-        print("in on draw", m_event.message)
-
-    def on_double(self, m_event: MessageEvent):
-        print("in double cards", m_event.message)
