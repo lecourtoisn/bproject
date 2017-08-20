@@ -1,5 +1,6 @@
 from CustomClient import CustomClient
 from MessageEvent import MessageEvent
+from Player import Player
 
 
 class MessengerBot:
@@ -23,9 +24,11 @@ class MultiCommandBot(MessengerBot):
                          if callable(getattr(self, method))
                          if method.startswith("on_")}
 
-    def validate(self, m_event: MessageEvent):
-        command, *rest = m_event.message.split(' ')
-        m_event.message = " ".join(rest)
+    def validate(self, m: MessageEvent):
+        command, *rest = m.message.split(' ')
+        m.message = " ".join(rest)
+        m.player = Player(m.author_id)
+        m.author = self.client.get_author(m.author_id)
         command = command.lower()
         if command in self.commands:
-            self.commands[command](m_event)
+            self.commands[command](m)

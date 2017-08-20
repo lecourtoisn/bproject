@@ -26,6 +26,7 @@ class Deck:
         d = [str(c) for c in range(2, 11)]
         d += ['J', 'Q', 'K', 'A']
         d *= nb_sabot * 4
+        self.max_cards = nb_sabot * 52
         self.cards = [Card(c) for c in d]
         self.shuffle()
 
@@ -41,6 +42,7 @@ class Deck:
     def shuffle(self):
         shuffle(self.cards)
 
+    @property
     def nb_cards(self):
         return len(self.cards)
 

@@ -1,47 +1,40 @@
 from collections import defaultdict
-from enum import Enum
 from threading import Timer
 
+from BlackjackTable import BlackjackTable, Phase
 from MessageEvent import MessageEvent
 from MessengerBot import MultiCommandBot
-from blackjack.game import Deck, Hand
 
 
 # Todo: make a deck per thread_id
 
 
-class Phase(Enum):
-    BETTING = 1
-    NONE = 2
-    ACTIONS = 3
-
-
 def on_phase(*phases: list):
     def decorator(func):
-        def wrapper(self, m_event: MessageEvent, *_, **kwargs):
-            phase = self.phases[m_event.thread_id]
-            if phase in phases:
-                func(self, m_event, *_, **kwargs)
+        def wrapper(self: BlackjackBot, m: MessageEvent, *_, **kwargs):
+            table = self.tables[m.thread_id]
+            if table.phase in phases:
+                func(self, m, *_, **kwargs)
 
         return wrapper
 
     return decorator
 
 
-def in_game(func):
-    def wrapper(self, m_event: MessageEvent, *_, **kwargs):
-        thread_id, player_id = m_event.thread_id, m_event.author_id
-        if player_id in self.bets[thread_id]:
-            func(self, m_event, *_, **kwargs)
+def playing(func):
+    def wrapper(self: BlackjackBot, m: MessageEvent, *_, **kwargs):
+        table = self.tables[m.thread_id]
+        if table.in_game(m.player):
+            func(self, m, *_, **kwargs)
 
     return wrapper
 
 
-def did_not_stay(func):
-    def wrapper(self, m_event: MessageEvent, *_, **kwargs):
-        thread_id, player_id = m_event.thread_id, m_event.author_id
-        if player_id not in self.stay[thread_id]:
-            func(self, m_event, *_, **kwargs)
+def did_not_stood(func):
+    def wrapper(self: BlackjackBot, m: MessageEvent, *_, **kwargs):
+        table = self.tables[m.thread_id]
+        if table.did_not_stood(m.player):
+            func(self, m, *_, **kwargs)
 
     return wrapper
 
@@ -49,68 +42,70 @@ def did_not_stay(func):
 class BlackjackBot(MultiCommandBot):
     def __init__(self, client):
         super().__init__(client)
-        self.phases = defaultdict(lambda: Phase.NONE)
-        self.bets = defaultdict(dict)
-        self.hands = defaultdict(lambda: defaultdict(lambda: Hand()))
-        self.banks = defaultdict(lambda: Hand())
-        self.stay = defaultdict(list)
-        self.deck = Deck()
+        self.tables = defaultdict(lambda: BlackjackTable())
         self.betting_delay = 15.0
 
     @on_phase(Phase.BETTING, Phase.NONE)
-    def on_bet(self, m_event: MessageEvent):
-        author_id, thread_id, message = m_event.author_id, m_event.thread_id, m_event.message
-        author = self.client.get_author(author_id)
-        bet = int(message)
-        phase = self.phases[thread_id]
-        if phase is Phase.NONE:
-            self.phases[thread_id] = Phase.BETTING
-            self.answer_back(m_event, "Nouvelle manche de Black jack, fates vos jeux. Vous avez {} secondes".format(
+    def on_bet(self, m: MessageEvent):
+        table = self.tables[m.thread_id]
+        bet = int(m.message)
+        if table.phase is Phase.NONE:
+            table.set_table()
+            self.answer_back(m, "Nouvelle manche de Black jack, fates vos jeux. Vous avez {} secondes".format(
                 int(self.betting_delay)))
-            Timer(self.betting_delay, self.close_bets, [thread_id, m_event]).start()
-        self.bets[thread_id][author_id] = bet
-        self.answer_back(m_event, "{} a parié {}".format(author.name, message))
+            Timer(self.betting_delay, self.close_bets, [m]).start()
+        table.bet(m.player, bet)
+        self.answer_back(m, "{} a parié {}".format(m.author.name, m.message))
 
-    def close_bets(self, thread_id: str, m_event: MessageEvent):
-        self.phases[thread_id] = Phase.ACTIONS
-        hands = self.hands[thread_id]
+    def close_bets(self, m: MessageEvent):
+        table = self.tables[m.thread_id]
         response = ["Les jeux sont faits"]
-        for player_id, bet in self.bets[thread_id].items():
-            player = self.client.get_author(player_id)
-            hand = hands[player_id]
-            self.deck.draw(2, hand)
+        table.initial_distribution()
+        table.distribute_bank()
+        for player, hand in table.get_hands().items():
             response.append("{} : {}({})".format(player.name, str(hand), hand.value))
-        bank_hand = self.banks[thread_id]
-        self.deck.draw(1, bank_hand)
-        response.append("")
-        response.append("Première carte de la banque : {}({})".format(str(bank_hand), bank_hand.value))
-        response.append("")
-        response.append("/card pour une nouvelle carte, /stay pour rester, /double pour doubler, /split pour séparer")
-        self.answer_back(m_event, "\n".join(response))
+        bank_hand = table.bank_hand
+        response.append("\nPremière carte de la banque : {}({})".format(str(bank_hand), bank_hand.value))
+        response.append("\n/hit pour une nouvelle carte, /stand pour rester, /double pour doubler, /split pour séparer")
+        self.answer_back(m, "\n".join(response))
 
     @on_phase(Phase.ACTIONS)
-    @did_not_stay
-    @in_game
-    def on_card(self, m_event: MessageEvent):
-        player_id, thread_id = m_event.author_id, m_event.thread_id
-        player = self.client.get_author(player_id)
-        hand = self.hands[thread_id][player_id]
-        self.deck.draw(1, hand)
+    @did_not_stood
+    @playing
+    def on_hit(self, m: MessageEvent):
+        table = self.tables[m.thread_id]
+        hand = table.hit_player(m.player)
+        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.value))
 
-        self.answer_back(m_event, "{} : {} ({})".format(player.name, str(hand), hand.value))
+        if table.dealing_is_over():
+            self.bank_turn()
 
     @on_phase(Phase.ACTIONS)
-    @did_not_stay
-    @in_game
-    def on_stay(self, m_event: MessageEvent):
-        player_id, thread_id = m_event.author_id, m_event.thread_id
-        self.stay[thread_id].append(player_id)
+    @did_not_stood
+    @playing
+    def on_stand(self, m: MessageEvent):
+        table = self.tables[m.thread_id]
+        table.stand_player(m.player)
 
-        # if len(self.hands[thread_id]) == len(self.stay[thread_id]):
-        #     self.terminate()
+        if table.dealing_is_over():
+            self.bank_turn()
 
-    def terminate(self, thread_id: str):
-        self.phases.pop(thread_id)
-        self.bets.pop(thread_id)
-        self.hands.pop(thread_id)
-        self.banks.pop(thread_id)
+    def bank_turn(self, m: MessageEvent):
+        table = self.tables[m.thread_id]
+        table.distribute_bank()
+        table.reward()
+        bank_hand = table.bank_hand
+        response = ["Main de la banque: {}({})".format(str(bank_hand), bank_hand.value)]
+        if table.bank_busted():
+            response.append("La banque a sauté, tous les joueurs encore en jeux sont gagnants")
+        else:
+            response.append("La banque marque {} points")
+
+        for player, hand, win, bet in table.summary():
+            result = "{} : {}({}) => ".format(player.name, str(hand), hand.value)
+            if win is True:
+                result += "Gain de {}".format(bet)
+            elif win is False:
+                result += "Perte de {}".format(bet)
+            else:
+                result += "Egalité, aucun gain, aucune perte"

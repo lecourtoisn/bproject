@@ -12,4 +12,5 @@ class MessageEvent:
         self.ts = ts
         self.metadata = metadata
         self.msg = msg
-
+        self.player = None
+        self.author = None
