@@ -6,9 +6,6 @@ from MessageEvent import MessageEvent
 from MessengerBot import MultiCommandBot
 
 
-# Todo: make a deck per thread_id
-
-
 def on_phase(*phases: list):
     def decorator(func):
         def wrapper(self: BlackjackBot, m: MessageEvent, *_, **kwargs):
