@@ -127,6 +127,7 @@ class BlackjackTable:
                 p_ctx.hand_contexts.append(new_ctx)
                 return hand, new_hand
         return None, None
+
     def double(self, player: Player) -> Hand:
         p_ctx = self.player_contexts[player]
         hand_ctxs = p_ctx.get_valid_hand_contexts()

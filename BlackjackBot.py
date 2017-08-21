@@ -45,7 +45,7 @@ class BlackjackBot(MultiCommandBot):
     @on_phase(Phase.BETTING, Phase.NONE)
     def on_bet(self, m: MessageEvent):
         table = self.tables[m.thread_id]
-        bet = int(m.message)
+        bet = abs(int(m.message))
         if table.phase is Phase.NONE:
             table.set_table()
             self.answer_back(m, "Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
@@ -58,10 +58,10 @@ class BlackjackBot(MultiCommandBot):
         table = self.tables[m.thread_id]
         response = ["Les jeux sont faits"]
         table.initial_distribution()
-        for player, hand in table.get_hands():
-            response.append("{} : {} ({})".format(player.name, str(hand), hand.max_valid_value))
         bank_hand = table.bank_hand
         response.append("\nPremière carte de la banque : {} ({})".format(str(bank_hand), bank_hand.max_valid_value))
+        for player, hand in table.get_hands():
+            response.append("{} : {} ({})".format(player.name, str(hand), hand.max_valid_value))
         response.append("\n/hit pour une nouvelle carte, /stand pour rester, /double pour doubler, /split pour séparer")
         self.answer_back(m, "\n".join(response))
 
@@ -105,7 +105,6 @@ class BlackjackBot(MultiCommandBot):
         hand, other_hand = table.split_cards(m.player)
         self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.max_valid_value))
         self.answer_back(m, "{} : {} ({})".format(m.player.name, str(other_hand), other_hand.max_valid_value))
-
 
     def bank_turn(self, m: MessageEvent):
         table = self.tables[m.thread_id]
