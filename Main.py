@@ -19,4 +19,3 @@ if __name__ == '__main__':
     client = CustomClient(email, password, session=session)
     m = BlackjackBot(client)
     client.listen()
-    client.logout()
