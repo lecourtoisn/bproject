@@ -88,6 +88,10 @@ class Hand:
         valid_values = [value for value in self.value if value <= 21]
         return max(valid_values, default=0)
 
+    @property
+    def readable_value(self):
+        return self.max_valid_value if self.max_valid_value != 0 else min(self.value)
+
     def has_ace(self):
         return len([c for c in self.cards if c.value == 'A']) != 0
 

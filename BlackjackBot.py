@@ -59,7 +59,7 @@ class BlackjackBot(MultiCommandBot):
         response = ["Les jeux sont faits"]
         table.initial_distribution()
         bank_hand = table.bank_hand
-        response.append("\nPremière carte de la banque : {} ({})".format(str(bank_hand), bank_hand.max_valid_value))
+        response.append("\nPremière carte de la banque : {} ({})".format(str(bank_hand), bank_hand.readable_value))
         for player, hand in table.get_hands():
             response.append("{} : {} ({})".format(player.name, str(hand), hand.max_valid_value))
         response.append("\n/hit pour une nouvelle carte, /stand pour rester, /double pour doubler, /split pour séparer")
@@ -71,7 +71,7 @@ class BlackjackBot(MultiCommandBot):
     def on_hit(self, m: MessageEvent):
         table = self.tables[m.thread_id]
         hand = table.hit(m.player)
-        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.max_valid_value))
+        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
 
         if table.dealing_is_over():
             self.bank_turn(m)
@@ -92,7 +92,7 @@ class BlackjackBot(MultiCommandBot):
     def on_double(self, m: MessageEvent):
         table = self.tables[m.thread_id]
         hand = table.double(m.player)
-        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.max_valid_value))
+        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
 
         if table.dealing_is_over():
             self.bank_turn(m)
@@ -103,22 +103,22 @@ class BlackjackBot(MultiCommandBot):
     def on_split(self, m: MessageEvent):
         table = self.tables[m.thread_id]
         hand, other_hand = table.split_cards(m.player)
-        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.max_valid_value))
-        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(other_hand), other_hand.max_valid_value))
+        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
+        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(other_hand), other_hand.readable_value))
 
     def bank_turn(self, m: MessageEvent):
         table = self.tables[m.thread_id]
         table.distribute_bank()
         table.reward()
         bank_hand = table.bank_hand
-        response = ["Main de la banque: {} ({})".format(str(bank_hand), bank_hand.max_valid_value)]
+        response = ["Main de la banque: {} ({})".format(str(bank_hand), bank_hand.readable_value)]
         if table.bank_busted():
             response.append("La banque a sauté, tous les joueurs encore en jeux sont gagnants")
         else:
             response.append("La banque marque {} points".format(bank_hand.max_valid_value))
 
         for player, hand, win, bet in table.summary():
-            result = "{} : {} ({}) => ".format(player.name, str(hand), hand.max_valid_value)
+            result = "{} : {} ({}) => ".format(player.name, str(hand), hand.readable_value)
             if win is True:
                 result += "Gain de {}".format(bet)
             elif win is False:
