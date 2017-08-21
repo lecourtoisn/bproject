@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List, Dict, Tuple
 
-from Player import Player
+from blackjack.Player import Player
 from blackjack.game import Hand, Deck
 
 

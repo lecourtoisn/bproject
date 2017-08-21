@@ -1,6 +1,7 @@
-from CustomClient import CustomClient
-from MessageEvent import MessageEvent
-from Player import Player
+from bot.MessageEvent import MessageEvent
+
+from blackjack.Player import Player
+from bot.CustomClient import CustomClient
 
 
 class MessengerBot:

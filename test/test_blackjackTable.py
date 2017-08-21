@@ -1,7 +1,7 @@
 from unittest import TestCase, skip
 
-from BlackjackTable import BlackjackTable, Phase
-from Player import Player
+from blackjack.BlackjackTable import BlackjackTable, Phase
+from blackjack.Player import Player
 
 
 class TestBlackjackTable(TestCase):

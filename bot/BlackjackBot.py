@@ -1,9 +1,10 @@
 from collections import defaultdict
 from threading import Timer
 
-from BlackjackTable import BlackjackTable, Phase
-from MessageEvent import MessageEvent
-from MessengerBot import MultiCommandBot
+from bot.MessengerBot import MultiCommandBot
+
+from blackjack.BlackjackTable import BlackjackTable, Phase
+from bot.MessageEvent import MessageEvent
 
 
 def on_phase(*phases: list):

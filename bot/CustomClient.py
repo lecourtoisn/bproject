@@ -2,7 +2,7 @@ import json
 
 from fbchat import Client, ThreadType
 
-from MessageEvent import MessageEvent
+from bot.MessageEvent import MessageEvent
 
 
 class CustomClient(Client):

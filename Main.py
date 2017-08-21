@@ -1,8 +1,9 @@
 import json
 import os
 
-from BlackjackBot import BlackjackBot
-from CustomClient import CustomClient
+from bot.BlackjackBot import BlackjackBot
+
+from bot.CustomClient import CustomClient
 
 if __name__ == '__main__':
 
