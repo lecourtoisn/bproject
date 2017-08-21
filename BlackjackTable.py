@@ -119,8 +119,6 @@ class BlackjackTable:
             hand = hand_ctxs[0].hand
             if hand.is_double():
                 hand, new_hand = hand.split_cards()
-                self.deck.draw(1, hand)
-                self.deck.draw(1, new_hand)
                 new_ctx = HandContext(new_hand)
                 hand_ctxs[0].is_split = True
                 new_ctx.is_split = True
