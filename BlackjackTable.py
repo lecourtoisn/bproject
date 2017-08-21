@@ -26,7 +26,7 @@ class HandContext:
 
     def resolve(self, dealer_hand: Hand, bet) -> Tuple[bool, int]:
         dealer_bj = dealer_hand.max_valid_value == 21 and len(dealer_hand.cards) == 2
-        player_bj = dealer_hand.max_valid_value == 21 and len(dealer_hand.cards) == 2 and not self.is_split
+        player_bj = self.hand.max_valid_value == 21 and len(self.hand.cards) == 2 and not self.is_split
         if dealer_bj and player_bj:
             return None, 0
         real_bet = bet * 2 if self.doubled else bet
@@ -126,7 +126,7 @@ class BlackjackTable:
                 new_ctx.is_split = True
                 p_ctx.hand_contexts.append(new_ctx)
                 return hand, new_hand
-        return None, None
+        return hand, hand
 
     def double(self, player: Player) -> Hand:
         p_ctx = self.player_contexts[player]

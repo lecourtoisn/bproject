@@ -52,7 +52,7 @@ class BlackjackBot(MultiCommandBot):
                 int(self.betting_delay)))
             Timer(self.betting_delay, self.close_bets, [m]).start()
         table.bet(m.player, bet)
-        self.answer_back(m, "{} a parié {}".format(m.author.name, m.message))
+        self.answer_back(m, "{} a parié {}".format(m.author.name, bet))
 
     def close_bets(self, m: MessageEvent):
         table = self.tables[m.thread_id]
