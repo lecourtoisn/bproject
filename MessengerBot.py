@@ -27,8 +27,8 @@ class MultiCommandBot(MessengerBot):
     def validate(self, m: MessageEvent):
         command, *rest = m.message.split(' ')
         m.message = " ".join(rest)
-        m.player = Player(m.author_id)
         m.author = self.client.get_author(m.author_id)
+        m.player = Player(m.author_id, m.author.name)
         command = command.lower()
         if command in self.commands:
             self.commands[command](m)

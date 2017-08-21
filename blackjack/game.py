@@ -48,7 +48,7 @@ class Deck:
 
 
 class Hand:
-    def __init__(self, cards=None):
+    def __init__(self, *cards):
         if cards is None:
             self.cards = []
         else:
@@ -66,6 +66,13 @@ class Hand:
     def too_high(self):
         return min(self.value) > 21
 
+    def split_cards(self):
+        if self.is_double():
+            other = Hand(self.cards[0])
+            self.cards.pop(0)
+            return self, other
+        return None, None
+
     @property
     def value(self):
         nb_as = [c.token for c in self.cards].count('A')
@@ -75,6 +82,11 @@ class Hand:
             values.add(sum(cards_values) + sum(a_values))
 
         return tuple(sorted(values))
+
+    @property
+    def max_valid_value(self):
+        valid_values = [value for value in self.value if value <= 21]
+        return max(valid_values, default=0)
 
     def has_ace(self):
         return len([c for c in self.cards if c.value == 'A']) != 0
