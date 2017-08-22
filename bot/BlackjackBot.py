@@ -148,3 +148,12 @@ class BlackjackBot(MultiCommandBot):
             recap_str = "{} : {} ({}) => {}".format(player.name, str(hand), hand.readable_value, ending_str)
             response.append(recap_str)
         self.send_casino("\n".join(response))
+
+    def on_debug(self, m: MessageEvent):
+        self.betting_delay = 5.0
+        self.actions_delay = 5.0
+
+    def on_prod(self, m: MessageEvent):
+        self.betting_delay = 30.0
+        self.actions_delay = 60.0
+
