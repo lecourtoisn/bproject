@@ -11,10 +11,10 @@ from bot.MessageEvent import MessageEvent
 
 def on_phase(*phases: list):
     def decorator(func):
-        def wrapper(self, m: MessageEvent, *_, **kwargs):
+        def wrapper(self, *_, **kwargs):
             table = self.table
             if table.phase in phases:
-                func(self, m, *_, **kwargs)
+                func(self, *_, **kwargs)
 
         return wrapper
 
@@ -44,8 +44,8 @@ class BlackjackBot(MultiCommandBot):
         super().__init__(client)
         self.casino_thread_id = "1573965122648233"
         self.table = BlackjackTable()
-        self.betting_delay = 30.0
-        self.actions_delay = 60.0
+        self.betting_delay = 5.0
+        self.actions_delay = 10.0
 
     def send_casino(self, message):
         self.client.sendMessage(message, thread_id=self.casino_thread_id, thread_type=ThreadType.GROUP)
@@ -56,10 +56,11 @@ class BlackjackBot(MultiCommandBot):
         bet = abs(int(m.message))
         if table.phase is Phase.NONE:
             table.set_table()
-            self.answer_back(m, "Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
-                int(self.betting_delay)))
             self.send_casino("Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
                 int(self.betting_delay)))
+            if m.thread_id != self.casino_thread_id:
+                self.answer_back(m, "Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
+                    int(self.betting_delay)))
             Timer(self.betting_delay, self.close_bets).start()
         try:
             self.client.addUsersToGroup([m.author_id], self.casino_thread_id)
@@ -78,7 +79,10 @@ class BlackjackBot(MultiCommandBot):
         for player, hand in table.get_hands():
             response.append("{} : {} ({})".format(player.name, str(hand), hand.max_valid_value))
         response.append("\n/hit pour une nouvelle carte, /stand pour rester, /double pour doubler, /split pour séparer")
+        response.append("Vous avez {} secondes".format(int(self.actions_delay)))
         self.send_casino("\n".join(response))
+
+        Timer(self.actions_delay, self.bank_turn).start()
 
     @on_phase(Phase.ACTIONS)
     @has_valid_hand
@@ -122,6 +126,7 @@ class BlackjackBot(MultiCommandBot):
             self.send_casino("{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
             self.send_casino("{} : {} ({})".format(m.player.name, str(other_hand), other_hand.readable_value))
 
+    @on_phase(Phase.ACTIONS)
     def bank_turn(self):
         table = self.table
         table.distribute_bank()
@@ -129,7 +134,7 @@ class BlackjackBot(MultiCommandBot):
         bank_hand = table.bank_hand
         response = ["Cartes de la banque: {} ({})\n".format(str(bank_hand), bank_hand.readable_value)]
         if table.bank_busted():
-            response.append("La banque a sauté, tous les joueurs encore en jeux sont gagnants\n")
+            response.append("💀 La banque a sauté, tous les joueurs encore en jeux sont gagnants\n")
         else:
             response.append("La banque marque {} points".format(bank_hand.max_valid_value))
 

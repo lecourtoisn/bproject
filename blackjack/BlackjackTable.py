@@ -9,6 +9,7 @@ class Phase(Enum):
     BETTING = 1
     NONE = 2
     ACTIONS = 3
+    BANK = 4
 
 
 class HandContext:
@@ -91,6 +92,7 @@ class BlackjackTable:
         self.phase = Phase.ACTIONS
 
     def distribute_bank(self):
+        self.phase = Phase.BANK
         while min(self.bank_hand.value) < 17:
             self.deck.draw(1, self.bank_hand)
 
@@ -163,6 +165,3 @@ class BlackjackTable:
                 summary.append((p, h_ctx.hand, *h_ctx.resolve(self.bank_hand, p_ctx.bet)))
 
         return summary
-
-    def stand_remaining(self):
-        pass
