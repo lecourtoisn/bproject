@@ -163,3 +163,6 @@ class BlackjackTable:
                 summary.append((p, h_ctx.hand, *h_ctx.resolve(self.bank_hand, p_ctx.bet)))
 
         return summary
+
+    def stand_remaining(self):
+        pass
