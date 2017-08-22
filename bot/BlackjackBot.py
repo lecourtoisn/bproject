@@ -122,7 +122,7 @@ class BlackjackBot(MultiCommandBot):
 
         for player, hand, win, bet in table.summary():
             if win is True:
-                ending_str = "Gain de {}  💲".format(bet)
+                ending_str = "Gain de {} 💲".format(bet)
             elif win is False:
                 ending_str = "Perte de {} 💀".format(abs(bet))
             else:
