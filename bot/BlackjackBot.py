@@ -41,7 +41,7 @@ class BlackjackBot(MultiCommandBot):
     def __init__(self, client):
         super().__init__(client)
         self.tables = defaultdict(lambda: BlackjackTable())
-        self.betting_delay = 5.0
+        self.betting_delay = 30.0
         self.actions_delay = 60.0
 
     @on_phase(Phase.BETTING, Phase.NONE)
@@ -127,7 +127,7 @@ class BlackjackBot(MultiCommandBot):
                 ending_str = "Perte de {} 💀".format(abs(bet))
             else:
                 ending_str = "Egalité, aucun gain, aucune perte"
-            recap_str = "{} : {} () => {}".format(player.name,  str(hand),
+            recap_str = "{} : {} ({}) => {}".format(player.name,  str(hand),
 
                                                                hand.readable_value, ending_str)
             response.append(recap_str)
