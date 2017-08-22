@@ -124,7 +124,7 @@ class BlackjackTable:
                 new_ctx.is_split = True
                 p_ctx.hand_contexts.append(new_ctx)
                 return hand, new_hand
-        return hand, hand
+        return None, None
 
     def double(self, player: Player) -> Hand:
         p_ctx = self.player_contexts[player]

@@ -105,8 +105,9 @@ class BlackjackBot(MultiCommandBot):
     def on_split(self, m: MessageEvent):
         table = self.tables[m.thread_id]
         hand, other_hand = table.split_cards(m.player)
-        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
-        self.answer_back(m, "{} : {} ({})".format(m.player.name, str(other_hand), other_hand.readable_value))
+        if hand is not None and other_hand is not None:
+            self.answer_back(m, "{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
+            self.answer_back(m, "{} : {} ({})".format(m.player.name, str(other_hand), other_hand.readable_value))
 
     def bank_turn(self, m: MessageEvent):
         table = self.tables[m.thread_id]
