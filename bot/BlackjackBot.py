@@ -1,12 +1,11 @@
-from collections import defaultdict
 from threading import Timer
 
 from fbchat import ThreadType
 
-from bot.MessengerBot import MultiCommandBot
-
 from blackjack.BlackjackTable import BlackjackTable, Phase
 from bot.MessageEvent import MessageEvent
+from bot.MessengerBot import MultiCommandBot
+from data_cache.PCache import PCache
 
 
 def on_phase(*phases: list):
@@ -24,7 +23,8 @@ def on_phase(*phases: list):
 def playing(func):
     def wrapper(self, m: MessageEvent, *_, **kwargs):
         table = self.table
-        if table.in_game(m.player):
+        player = PCache.get(m.author_id)
+        if table.in_game(player):
             func(self, m, *_, **kwargs)
 
     return wrapper
@@ -33,7 +33,8 @@ def playing(func):
 def has_valid_hand(func):
     def wrapper(self, m: MessageEvent, *_, **kwargs):
         table = self.table
-        if table.has_valid_hands(m.player):
+        player = PCache.get(m.author_id)
+        if table.has_valid_hands(player):
             func(self, m, *_, **kwargs)
 
     return wrapper
@@ -53,6 +54,9 @@ class BlackjackBot(MultiCommandBot):
     @on_phase(Phase.BETTING, Phase.NONE)
     def on_bet(self, m: MessageEvent):
         table = self.table
+        player = PCache.get(m.author_id)
+        if player.name is None:
+            player.name = self.client.get_author(m.author_id).name
         bet = abs(int(m.message))
         if table.phase is Phase.NONE:
             table.set_table()
@@ -67,8 +71,8 @@ class BlackjackBot(MultiCommandBot):
         except:
             print("Already in conv")
 
-        table.bet(m.player, bet)
-        self.send_casino("{} a misé {}".format(m.author.name, bet))
+        table.bet(player, bet)
+        self.send_casino("{} a misé {}".format(player.name, bet))
 
     def close_bets(self):
         table = self.table
@@ -89,8 +93,9 @@ class BlackjackBot(MultiCommandBot):
     @playing
     def on_hit(self, m: MessageEvent):
         table = self.table
-        hand = table.hit(m.player)
-        self.send_casino("{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
+        player = PCache.get(m.author_id)
+        hand = table.hit(player)
+        self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
 
         if table.dealing_is_over():
             self.bank_turn()
@@ -100,7 +105,8 @@ class BlackjackBot(MultiCommandBot):
     @playing
     def on_stand(self, m: MessageEvent):
         table = self.table
-        table.stand(m.player)
+        player = PCache.get(m.author_id)
+        table.stand(player)
 
         if table.dealing_is_over():
             self.bank_turn()
@@ -110,8 +116,9 @@ class BlackjackBot(MultiCommandBot):
     @playing
     def on_double(self, m: MessageEvent):
         table = self.table
-        hand = table.double(m.player)
-        self.send_casino("{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
+        player = PCache.get(m.author_id)
+        hand = table.double(player)
+        self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
 
         if table.dealing_is_over():
             self.bank_turn()
@@ -121,10 +128,11 @@ class BlackjackBot(MultiCommandBot):
     @playing
     def on_split(self, m: MessageEvent):
         table = self.table
-        hand, other_hand = table.split_cards(m.player)
+        player = PCache.get(m.author_id)
+        hand, other_hand = table.split_cards(player)
         if hand is not None and other_hand is not None:
-            self.send_casino("{} : {} ({})".format(m.player.name, str(hand), hand.readable_value))
-            self.send_casino("{} : {} ({})".format(m.player.name, str(other_hand), other_hand.readable_value))
+            self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
+            self.send_casino("{} : {} ({})".format(player.name, str(other_hand), other_hand.readable_value))
 
     @on_phase(Phase.ACTIONS)
     def bank_turn(self):
@@ -149,11 +157,10 @@ class BlackjackBot(MultiCommandBot):
             response.append(recap_str)
         self.send_casino("\n".join(response))
 
-    def on_debug(self, m: MessageEvent):
+    def on_debug(self, _: MessageEvent):
         self.betting_delay = 5.0
         self.actions_delay = 5.0
 
-    def on_prod(self, m: MessageEvent):
+    def on_prod(self, _: MessageEvent):
         self.betting_delay = 30.0
         self.actions_delay = 60.0
-

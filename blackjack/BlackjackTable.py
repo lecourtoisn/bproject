@@ -140,6 +140,8 @@ class BlackjackTable:
         return hand
 
     def reward(self):
+        for player, _, _, bet in self.summary():
+            player.cash += bet
         self.phase = Phase.NONE
 
     def get_hands(self):
