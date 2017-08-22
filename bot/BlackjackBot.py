@@ -42,6 +42,7 @@ class BlackjackBot(MultiCommandBot):
         super().__init__(client)
         self.tables = defaultdict(lambda: BlackjackTable())
         self.betting_delay = 5.0
+        self.actions_delay = 60.0
 
     @on_phase(Phase.BETTING, Phase.NONE)
     def on_bet(self, m: MessageEvent):
@@ -57,10 +58,10 @@ class BlackjackBot(MultiCommandBot):
 
     def close_bets(self, m: MessageEvent):
         table = self.tables[m.thread_id]
-        response = ["Les jeux sont faits"]
+        response = ["Les jeux sont faits\n"]
         table.initial_distribution()
         bank_hand = table.bank_hand
-        response.append("\nPremière carte de la banque : {} ({})".format(str(bank_hand), bank_hand.readable_value))
+        response.append("Première carte de la banque : {} ({})\n".format(str(bank_hand), bank_hand.readable_value))
         for player, hand in table.get_hands():
             response.append("{} : {} ({})".format(player.name, str(hand), hand.max_valid_value))
         response.append("\n/hit pour une nouvelle carte, /stand pour rester, /double pour doubler, /split pour séparer")
@@ -112,19 +113,22 @@ class BlackjackBot(MultiCommandBot):
         table.distribute_bank()
         table.reward()
         bank_hand = table.bank_hand
-        response = ["Main de la banque: {} ({})".format(str(bank_hand), bank_hand.readable_value)]
+        response = ["Cartes de la banque: {} ({})\n".format(str(bank_hand), bank_hand.readable_value)]
         if table.bank_busted():
-            response.append("La banque a sauté, tous les joueurs encore en jeux sont gagnants")
+            response.append("La banque a sauté, tous les joueurs encore en jeux sont gagnants\n")
+
         else:
             response.append("La banque marque {} points".format(bank_hand.max_valid_value))
 
         for player, hand, win, bet in table.summary():
-            result = "{} : {} ({}) => ".format(player.name, str(hand), hand.readable_value)
             if win is True:
-                result += "Gain de {}".format(bet)
+                ending_str = "Gain de {}  💲".format(bet)
             elif win is False:
-                result += "Perte de {}".format(abs(bet))
+                ending_str = "Perte de {} 💀".format(abs(bet))
             else:
-                result += "Egalité, aucun gain, aucune perte"
-            response.append(result)
+                ending_str = "Egalité, aucun gain, aucune perte"
+            recap_str = "{} : {} () => {}".format(player.name,  str(hand),
+
+                                                               hand.readable_value, ending_str)
+            response.append(recap_str)
         self.answer_back(m, "\n".join(response))
