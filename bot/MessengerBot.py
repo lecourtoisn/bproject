@@ -1,3 +1,5 @@
+from fbchat import MessageReaction
+
 from bot.MessageEvent import MessageEvent
 
 from blackjack.Player import Player
@@ -15,6 +17,8 @@ class MessengerBot:
     def answer_back(self, m_event: MessageEvent, message: str):
         self.client.sendMessage(message, thread_id=m_event.thread_id, thread_type=m_event.thread_type)
 
+    def react_tumb_up(self, m_event: MessageEvent):
+        self.client.reactToMessage(m_event.mid, MessageReaction.YES)
 
 class MultiCommandBot(MessengerBot):
     def __init__(self, client):

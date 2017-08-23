@@ -81,7 +81,8 @@ class BlackjackBot(MultiCommandBot):
             print("Already in conv")
 
         table.bet(player, bet)
-        self.send_casino("{} a misé {}".format(player.name, bet))
+        self.react_tumb_up(m)
+        # self.send_casino("{} a misé {}".format(player.name, bet))
 
     def close_bets(self, m: MessageEvent):
         table = self.table
