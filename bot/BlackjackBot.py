@@ -146,10 +146,9 @@ class BlackjackBot(MultiCommandBot):
             self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
             self.send_casino("{} : {} ({})".format(player.name, str(other_hand), other_hand.readable_value))
 
-    @on_phase(Phase.ACTIONS)
     def bank_turn(self, game_id):
         table = self.table
-        if table.game_id != game_id:
+        if table.phase != Phase.ACTIONS or table.game_id != game_id:
             return
         table.distribute_bank()
         table.reward()
