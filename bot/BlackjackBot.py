@@ -202,3 +202,21 @@ class BlackjackBot(MultiCommandBot):
             response.append("#{} {}: {}".format(place + 1 + lower_bound, name, score))
 
         self.answer_back(m, "\n".join(response))
+
+    def on_help(self, m: MessageEvent):
+        message = ["[Règles du blackjack",
+                   "Le but du BlackJack est de tirer des cartes jusqu'à approcher le plus possible de 21 sans le dépasser",
+                   "Le joueur gagne si sa main à plus de valeur que celle de a banque et qu'il n'a pas dépassé 21",
+                   "La banque tire en dessous de 17 et reste à 17 ou plus",
+                   "",
+                   "Les cartes de 2 à 10 valent autant de point", "Les têtes valent 10 points",
+                   "L'as vaut 1 ou 11 points à l'avantage du joueur",
+                   "",
+                   "Un as plus une tête est un Blackjack, et vous rapportera 1,5 fois votre mise",
+                   "Toute combinaison de 3 carte ou plus, même si elle vaut 21 points, a moins de valeur qu'un Blackjack",
+                   "",
+                   "/hit: demande une carte suplémentaire",
+                   "/double: double sa mise et demande une dernière carte",
+                   "/split: si vous avez une paire, split sépare votre paire en deux jeux indépendants",
+                   "/stand: signale que nous ne souhaitez plus de carte"]
+        self.client.sendMessage('\n'.join(message), m.author_id)
