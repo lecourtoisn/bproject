@@ -8,10 +8,8 @@ from bot.MessengerBot import MultiCommandBot
 from data_cache.PCache import PCache
 
 DEBUG_THREAD_ID = "1573965122648233"
-PROD_THREAD_ID = "1573965122648233"
-
-
-# PROD_THREAD_ID = "1526063594106602"
+# PROD_THREAD_ID = "1573965122648233"
+PROD_THREAD_ID = "1526063594106602"
 
 
 def on_phase(*phases: list):
@@ -49,10 +47,10 @@ def has_valid_hand(func):
 class BlackjackBot(MultiCommandBot):
     def __init__(self, client):
         super().__init__(client)
-        self.casino_thread_id = DEBUG_THREAD_ID
+        self.casino_thread_id = PROD_THREAD_ID
         self.table = BlackjackTable()
-        self.betting_delay = 5.0
-        self.actions_delay = 10.0
+        self.betting_delay = 30.0
+        self.actions_delay = 60.0
         self.max_bet = 100
 
     def send_casino(self, message):
@@ -76,7 +74,7 @@ class BlackjackBot(MultiCommandBot):
             if m.thread_id != self.casino_thread_id:
                 self.answer_back(m, "Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
                     int(self.betting_delay)))
-            Timer(self.betting_delay, self.close_bets).start()
+            Timer(self.betting_delay, self.close_bets, [m]).start()
         try:
             self.client.addUsersToGroup([m.author_id], self.casino_thread_id)
         except:
@@ -85,9 +83,11 @@ class BlackjackBot(MultiCommandBot):
         table.bet(player, bet)
         self.send_casino("{} a misé {}".format(player.name, bet))
 
-    def close_bets(self):
+    def close_bets(self, m: MessageEvent):
         table = self.table
         response = ["Les jeux sont faits\n"]
+        if m.thread_id != self.casino_thread_id:
+            self.answer_back(m, response[0][:-1])
         table.initial_distribution()
         bank_hand = table.bank_hand
         response.append("Première carte de la banque : {} ({})\n".format(str(bank_hand), bank_hand.readable_value))
@@ -97,7 +97,7 @@ class BlackjackBot(MultiCommandBot):
         response.append("Vous avez {} secondes".format(int(self.actions_delay)))
         self.send_casino("\n".join(response))
 
-        Timer(self.actions_delay, self.bank_turn).start()
+        Timer(self.actions_delay, self.bank_turn, [table.game_id]).start()
 
     @on_phase(Phase.ACTIONS)
     @has_valid_hand
@@ -109,7 +109,7 @@ class BlackjackBot(MultiCommandBot):
         self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
 
         if table.dealing_is_over():
-            self.bank_turn()
+            self.bank_turn(table.game_id)
 
     @on_phase(Phase.ACTIONS)
     @has_valid_hand
@@ -120,7 +120,7 @@ class BlackjackBot(MultiCommandBot):
         table.stand(player)
 
         if table.dealing_is_over():
-            self.bank_turn()
+            self.bank_turn(table.game_id)
 
     @on_phase(Phase.ACTIONS)
     @has_valid_hand
@@ -146,8 +146,10 @@ class BlackjackBot(MultiCommandBot):
             self.send_casino("{} : {} ({})".format(player.name, str(other_hand), other_hand.readable_value))
 
     @on_phase(Phase.ACTIONS)
-    def bank_turn(self):
+    def bank_turn(self, game_id):
         table = self.table
+        if table.game_id != game_id:
+            return
         table.distribute_bank()
         table.reward()
         bank_hand = table.bank_hand
@@ -181,7 +183,7 @@ class BlackjackBot(MultiCommandBot):
     def on_scores(self, m: MessageEvent):
         response = ["[Blackjack scores]"]
         scores = [(p.name, p.cash) for p in PCache.cache.values()]
-        scores = sorted(scores, key=lambda s: s[1])
+        scores = sorted(scores, key=lambda s: s[1], reverse=True)
         for place, (name, score) in enumerate(scores[:10]):
             response.append("#{} {}: {}".format(place + 1, name, score))
 
@@ -190,10 +192,11 @@ class BlackjackBot(MultiCommandBot):
     def on_score(self, m: MessageEvent):
         player = PCache.get(m.author_id)
         scores = [(p.name, p.cash) for p in PCache.cache.values()]
-        scores = sorted(scores, key=lambda s: s[1])
+        scores = sorted(scores, key=lambda s: s[1], reverse=True)
         p_place = scores.index((player.name, player.cash))
-        lower_bound, higher_bound = p_place - 3, p_place + 3
+        lower_bound = p_place - 2
         lower_bound = 0 if lower_bound < 0 else lower_bound
+        higher_bound = lower_bound + 5
         response = ["[Blackjack scores]"]
 
         for place, (name, score) in enumerate(scores[lower_bound:higher_bound]):

@@ -67,12 +67,14 @@ class BlackjackTable:
         self.bank_hand = Hand()
         self._player_contexts = {}
         self.deck = Deck()
+        self.game_id = 0
 
     @property
     def player_contexts(self) -> Dict[Player, PlayerContext]:
         return self._player_contexts
 
     def set_table(self):
+        self.game_id += 1
         if self.deck.nb_cards < 30:
             self.deck = Deck()
         self.bank_hand = Hand()
