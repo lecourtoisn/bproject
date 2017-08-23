@@ -198,9 +198,9 @@ class BlackjackBot(MultiCommandBot):
         lower_bound = p_place - 2
         lower_bound = 0 if lower_bound < 0 else lower_bound
         higher_bound = lower_bound + 5
-        response = ["[Blackjack scores]"]
+        response = ["[Blackjack personal score]"]
 
         for place, (name, score) in enumerate(scores[lower_bound:higher_bound]):
-            response.append("#{} {}: {}".format(place + 1, name, score))
+            response.append("#{} {}: {}".format(place + 1 + lower_bound, name, score))
 
         self.answer_back(m, "\n".join(response))
