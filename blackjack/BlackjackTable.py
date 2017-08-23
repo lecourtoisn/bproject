@@ -105,6 +105,8 @@ class BlackjackTable:
         if len(hand_ctxs) != 0:
             hand = hand_ctxs[0].hand
             self.deck.draw(1, hand)
+            if hand.max_valid_value == 21:
+                self.stand(player)
         return hand
 
     def stand(self, player: Player) -> Hand:
