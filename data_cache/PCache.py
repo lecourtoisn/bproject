@@ -20,7 +20,7 @@ class PCache:
         with open(db_path) as f:
             data = json.load(f)
             for p in data.values():
-                cls.add(p)
+                cls.add(blackjack.Player.Player(p["id"], p["name"], p["cash"]))
 
     @classmethod
     def dump_all(cls):

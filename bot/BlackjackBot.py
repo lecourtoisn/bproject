@@ -7,6 +7,12 @@ from bot.MessageEvent import MessageEvent
 from bot.MessengerBot import MultiCommandBot
 from data_cache.PCache import PCache
 
+DEBUG_THREAD_ID = "1573965122648233"
+PROD_THREAD_ID = "1573965122648233"
+
+
+# PROD_THREAD_ID = "1526063594106602"
+
 
 def on_phase(*phases: list):
     def decorator(func):
@@ -43,10 +49,11 @@ def has_valid_hand(func):
 class BlackjackBot(MultiCommandBot):
     def __init__(self, client):
         super().__init__(client)
-        self.casino_thread_id = "1573965122648233"
+        self.casino_thread_id = DEBUG_THREAD_ID
         self.table = BlackjackTable()
         self.betting_delay = 5.0
         self.actions_delay = 10.0
+        self.max_bet = 100
 
     def send_casino(self, message):
         self.client.sendMessage(message, thread_id=self.casino_thread_id, thread_type=ThreadType.GROUP)
@@ -58,10 +65,14 @@ class BlackjackBot(MultiCommandBot):
         if player.name is None:
             player.name = self.client.get_author(m.author_id).name
         bet = abs(int(m.message))
+        if bet > self.max_bet:
+            return
         if table.phase is Phase.NONE:
             table.set_table()
-            self.send_casino("Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
-                int(self.betting_delay)))
+            self.send_casino(
+                "Nouvelle manche de Black jack, faites vos jeux. Mise maximale : {}. Vous avez {} secondes".format(
+                    str(self.max_bet), int(self.betting_delay)))
+
             if m.thread_id != self.casino_thread_id:
                 self.answer_back(m, "Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
                     int(self.betting_delay)))
@@ -160,7 +171,32 @@ class BlackjackBot(MultiCommandBot):
     def on_debug(self, _: MessageEvent):
         self.betting_delay = 5.0
         self.actions_delay = 5.0
+        self.casino_thread_id = DEBUG_THREAD_ID
 
     def on_prod(self, _: MessageEvent):
         self.betting_delay = 30.0
         self.actions_delay = 60.0
+        self.casino_thread_id = PROD_THREAD_ID
+
+    def on_scores(self, m: MessageEvent):
+        response = ["[Blackjack scores]"]
+        scores = [(p.name, p.cash) for p in PCache.cache.values()]
+        scores = sorted(scores, key=lambda s: s[1])
+        for place, (name, score) in enumerate(scores[:10]):
+            response.append("#{} {}: {}".format(place + 1, name, score))
+
+        self.answer_back(m, "\n".join(response))
+
+    def on_score(self, m: MessageEvent):
+        player = PCache.get(m.author_id)
+        scores = [(p.name, p.cash) for p in PCache.cache.values()]
+        scores = sorted(scores, key=lambda s: s[1])
+        p_place = scores.index((player.name, player.cash))
+        lower_bound, higher_bound = p_place - 3, p_place + 3
+        lower_bound = 0 if lower_bound < 0 else lower_bound
+        response = ["[Blackjack scores]"]
+
+        for place, (name, score) in enumerate(scores[lower_bound:higher_bound]):
+            response.append("#{} {}: {}".format(place + 1, name, score))
+
+        self.answer_back(m, "\n".join(response))
