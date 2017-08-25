@@ -20,6 +20,7 @@ class MessengerBot:
     def react_tumb_up(self, m_event: MessageEvent):
         self.client.reactToMessage(m_event.mid, MessageReaction.YES)
 
+
 class MultiCommandBot(MessengerBot):
     def __init__(self, client):
         super(MultiCommandBot, self).__init__(client)
