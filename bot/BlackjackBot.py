@@ -83,6 +83,9 @@ class BlackjackBot(MultiCommandBot):
         table.bet(player, bet)
         self.react_tumb_up(m)
 
+        if table.dealing_is_over():
+            self.bank_turn(table.game_id)
+
     def close_bets(self, m: MessageEvent):
         table = self.table
         response = ["Les jeux sont faits\n"]
