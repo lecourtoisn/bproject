@@ -60,6 +60,9 @@ class BlackjackBot(MultiCommandBot):
     def on_bet(self, m: MessageEvent):
         table = self.table
         player = PCache.get(m.author_id)
+        # if player.id == "100021772478142" and player.cash < -2500:
+        #     self.send_casino("Master BlackJack not so master. His score: {}".format(player.cash))
+        #     self.client.removeUserFromGroup(self.casino_thread_id, ["100021772478142"])
         if player.name is None:
             player.name = self.client.get_author(m.author_id).name
         bet = abs(int(m.message))

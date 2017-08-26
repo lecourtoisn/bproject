@@ -88,9 +88,9 @@ class BlackjackTable:
         for player_context in self.player_contexts.values():
             hand = Hand()
             self.deck.draw(2, hand)
+            player_context.hand_contexts.append(HandContext(hand))
             if hand.max_valid_value == 21:
                 self.stand(player_context.player)
-            player_context.hand_contexts.append(HandContext(hand))
         self.bank_hand = Hand()
         self.deck.draw(1, self.bank_hand)
         self.phase = Phase.ACTIONS
