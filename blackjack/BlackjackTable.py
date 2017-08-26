@@ -97,7 +97,7 @@ class BlackjackTable:
 
     def distribute_bank(self):
         self.phase = Phase.BANK
-        while min(self.bank_hand.value) < 17:
+        while 0 < self.bank_hand.max_valid_value < 17:
             self.deck.draw(1, self.bank_hand)
 
     def hit(self, player: Player) -> Hand:
