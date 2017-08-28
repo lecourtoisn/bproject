@@ -48,7 +48,7 @@ class BlackjackBot(MultiCommandBot):
         super().__init__(client)
         self.casino_thread_id = PROD_THREAD_ID
         self.table = BlackjackTable()
-        self.betting_delay = 30.0
+        self.betting_delay = 15.0
         self.actions_delay = 60.0
         self.max_bet = 100
 
