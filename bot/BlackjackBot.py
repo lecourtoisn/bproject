@@ -1,5 +1,6 @@
 from threading import Timer
 
+import emoji
 from fbchat import ThreadType
 
 from blackjack.BlackjackTable import BlackjackTable, Phase
@@ -55,8 +56,14 @@ class BlackjackBot(MultiCommandBot):
     def send_casino(self, message):
         self.client.sendMessage(message, thread_id=self.casino_thread_id, thread_type=ThreadType.GROUP)
 
+    def any(self, m: MessageEvent):
+        if m.thread_id == self.casino_thread_id and m.message == emoji.emojize(":money_with_wings:"):
+            m.message = "100"
+            self.on_bet(m)
+
     @on_phase(Phase.BETTING, Phase.NONE)
     def on_bet(self, m: MessageEvent):
+        print("Soo")
         table = self.table
         player = PCache.get(m.author_id)
         if player.name is None:

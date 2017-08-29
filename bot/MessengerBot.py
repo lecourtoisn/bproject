@@ -32,7 +32,12 @@ class MultiCommandBot(MessengerBot):
 
     def validate(self, m: MessageEvent):
         command, *rest = m.message.split(' ')
-        m.message = " ".join(rest)
         command = command.lower()
         if command in self.commands:
+            m.message = " ".join(rest)
             self.commands[command](m)
+        else:
+            self.any(m)
+
+    def any(self, m: MessageEvent):
+        pass
