@@ -4,6 +4,7 @@ import emoji
 from fbchat import ThreadType
 
 from blackjack.BlackjackTable import BlackjackTable, Phase
+from blackjack.Player import Player
 from bot.MessageEvent import MessageEvent
 from bot.MessengerBot import MultiCommandBot
 from data_cache.PCache import PCache
@@ -12,6 +13,7 @@ DEBUG_THREAD_ID = "1573965122648233"
 PROD_THREAD_ID = "1526063594106602"
 
 
+#
 def on_phase(*phases: list):
     def decorator(func):
         def wrapper(self, *_, **kwargs):
@@ -25,84 +27,65 @@ def on_phase(*phases: list):
 
 
 def playing(func):
-    def wrapper(self, m: MessageEvent, *_, **kwargs):
+    def wrapper(self, player_id, *_, **kwargs):
         table = self.table
-        player = PCache.get(m.author_id)
+        player = PCache.get(player_id)
         if table.in_game(player):
-            func(self, m, *_, **kwargs)
+            func(self, player_id, *_, **kwargs)
 
     return wrapper
 
 
 def has_valid_hand(func):
-    def wrapper(self, m: MessageEvent, *_, **kwargs):
+    def wrapper(self, player_id, *_, **kwargs):
         table = self.table
-        player = PCache.get(m.author_id)
+        player = PCache.get(player_id)
         if table.has_valid_hands(player):
-            func(self, m, *_, **kwargs)
+            func(self, player_id, *_, **kwargs)
 
     return wrapper
 
 
-class BlackjackBot(MultiCommandBot):
+class Observers(object):
+    def new_round(self, shuffled=False):
+        pass
+
+    def cards_distributed(self, bank_hand, players_hands):
+        pass
+
+
+class BlackjackEngine:
     def __init__(self, client):
         super().__init__(client)
-        self.casino_thread_id = PROD_THREAD_ID
         self.table = BlackjackTable()
         self.betting_delay = 15.0
         self.actions_delay = 60.0
         self.max_bet = 100
 
-    def send_casino(self, message):
-        self.client.sendMessage(message, thread_id=self.casino_thread_id, thread_type=ThreadType.GROUP)
-
-    def any(self, m: MessageEvent):
-        if m.thread_id == self.casino_thread_id and m.message == emoji.emojize(":money_with_wings:"):
-            m.message = "100"
-            self.on_bet(m)
+        self.observers = []
 
     @on_phase(Phase.BETTING, Phase.NONE)
-    def on_bet(self, m: MessageEvent):
+    def bet(self, player_id, amount: int):
         table = self.table
-        player = PCache.get(m.author_id)
-        if player.name is None:
-            player.name = self.client.get_author(m.author_id).name
-        bet = abs(int(m.message))
+        bet = abs(amount)
         if bet > self.max_bet:
             return
         if table.phase is Phase.NONE:
             shuffled = table.set_table()
-            self.send_casino(
-                "Nouvelle manche de Black jack, faites vos jeux. Mise maximale : {}. Vous avez {} secondes".format(
-                    str(self.max_bet), int(self.betting_delay)))
+            for o in self.observers:
+                o.new_round(shuffled=shuffled)
 
-            if m.thread_id != self.casino_thread_id:
-                self.answer_back(m, "Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
-                    int(self.betting_delay)))
-            if shuffled:
-                self.send_casino("Le sabot vient d'être mélangé")
-            Timer(self.betting_delay, self.close_bets, [m]).start()
-        try:
-            self.client.addUsersToGroup([m.author_id], self.casino_thread_id)
-        except:
-            pass
+            Timer(self.betting_delay, self.close_bets).start()
 
+        player = PCache.get(player_id)
         table.bet(player, bet)
-        self.react_tumb_up(m)
 
-    def close_bets(self, m: MessageEvent):
+    def close_bets(self):
         table = self.table
-        response = ["Les jeux sont faits\n"]
-        if m.thread_id != self.casino_thread_id:
-            self.answer_back(m, response[0][:-1])
         table.initial_distribution()
         bank_hand = table.bank_hand
-        response.append("Première carte de la banque : {} ({})\n".format(str(bank_hand), bank_hand.readable_value))
-        for player, hand in table.get_hands():
-            response.append("{} : {} ({})".format(player.name, str(hand), hand.max_valid_value))
-        response.append("\n/hit pour une nouvelle carte, /stand pour rester, /double pour doubler, /split pour séparer")
-        response.append("Vous avez {} secondes".format(int(self.actions_delay)))
-        self.send_casino("\n".join(response))
+        for o in self.observers:
+            o.cards_distributed(bank_hand=bank_hand, players_hands=table.get_hands())
 
         Timer(self.actions_delay, self.bank_turn, [table.game_id]).start()
 
@@ -112,9 +95,9 @@ class BlackjackBot(MultiCommandBot):
     @on_phase(Phase.ACTIONS)
     @has_valid_hand
     @playing
-    def on_hit(self, m: MessageEvent):
+    def on_hit(self, player_id):
         table = self.table
-        player = PCache.get(m.author_id)
+        player = PCache.get(player_id)
         hand = table.hit(player)
         self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
 
