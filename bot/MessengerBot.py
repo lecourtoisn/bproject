@@ -17,8 +17,8 @@ class MessengerBot:
     def answer_back(self, m_event: MessageEvent, message: str):
         self.client.sendMessage(message, thread_id=m_event.thread_id, thread_type=m_event.thread_type)
 
-    def react_tumb_up(self, m_event: MessageEvent):
-        self.client.reactToMessage(m_event.mid, MessageReaction.YES)
+    def react_tumb_up(self, message_id):
+        self.client.reactToMessage(message_id, MessageReaction.YES)
 
 
 class MultiCommandBot(MessengerBot):
