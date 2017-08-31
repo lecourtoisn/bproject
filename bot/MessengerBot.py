@@ -1,9 +1,7 @@
 from fbchat import MessageReaction
 
-from bot.MessageEvent import MessageEvent
-
-from blackjack.Player import Player
 from bot.CustomClient import CustomClient
+from bot.MessageEvent import MessageEvent
 
 
 class MessengerBot:
@@ -28,7 +26,7 @@ class MultiCommandBot(MessengerBot):
         self.commands = {"/{}".format('_'.join(method.split('_')[1:])): getattr(self, method)
                          for method in dir(self)
                          if callable(getattr(self, method))
-                         if method.startswith("on_")}
+                         if method.startswith("cmd_")}
 
     def validate(self, m: MessageEvent):
         command, *rest = m.message.split(' ')

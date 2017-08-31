@@ -4,9 +4,6 @@ from blackjack.BlackjackTable import BlackjackTable, Phase
 from blackjack.game import Hand
 from data_cache.PCache import PCache
 
-DEBUG_THREAD_ID = "1573965122648233"
-PROD_THREAD_ID = "1526063594106602"
-
 
 def on_phase(*phases: list):
     def decorator(func):
@@ -41,36 +38,36 @@ def has_valid_hand(func):
 
 
 class EngineObserver(object):
-    def o_new_round(self):
+    def on_new_round(self):
         pass
 
-    def o_bet(self, player_id):
+    def on_bet(self, player_id):
         pass
 
-    def o_cards_distributed(self):
+    def on_cards_distributed(self):
         pass
 
-    def o_hit(self, player_id, hand: Hand):
+    def on_hit(self, player_id, hand: Hand):
         pass
 
-    def o_stand(self, player_id):
+    def on_stand(self, player_id):
         pass
 
-    def o_double(self, player_id, hand: Hand):
+    def on_double(self, player_id, hand: Hand):
         pass
 
-    def o_split(self, player_id, hand: Hand, other_hand: Hand):
+    def on_split(self, player_id, hand: Hand, other_hand: Hand):
         pass
 
-    def o_end_round(self):
+    def on_end_round(self):
         pass
 
 
 class BlackjackEngine:
     def __init__(self):
         self.table = BlackjackTable()
-        self.betting_delay = 1.0
-        self.actions_delay = 5.0
+        self.betting_delay = 5.0
+        self.actions_delay = 60.0
         self.max_bet = 100
         self.observers = set()
 
@@ -88,15 +85,15 @@ class BlackjackEngine:
         table.bet(player, bet)
         if new_round:
             for o in self.observers:
-                o.o_new_round()
+                o.on_new_round()
         for o in self.observers:
-            o.o_bet(player_id)
+            o.on_bet(player_id)
 
     def close_bets(self):
         table = self.table
         table.initial_distribution()
         for o in self.observers:
-            o.o_cards_distributed()
+            o.on_cards_distributed()
 
         Timer(self.actions_delay, self.bank_turn, [table.game_id]).start()
 
@@ -111,7 +108,7 @@ class BlackjackEngine:
         player = PCache.get(player_id)
         hand = table.hit(player)
         for o in self.observers:
-            o.o_hit(player_id, hand)
+            o.on_hit(player_id, hand)
         if table.dealing_is_over():
             self.bank_turn(table.game_id)
 
@@ -124,7 +121,7 @@ class BlackjackEngine:
         table.stand(player)
 
         for o in self.observers:
-            o.o_stand(player_id)
+            o.on_stand(player_id)
         if table.dealing_is_over():
             self.bank_turn(table.game_id)
 
@@ -137,7 +134,7 @@ class BlackjackEngine:
         hand = table.double(player)
 
         for o in self.observers:
-            o.o_double(player_id, hand)
+            o.on_double(player_id, hand)
         if table.dealing_is_over():
             self.bank_turn(table.game_id)
 
@@ -150,7 +147,7 @@ class BlackjackEngine:
         hand, other_hand = table.split_cards(player)
         if hand is not None and other_hand is not None:
             for o in self.observers:
-                o.o_split(player_id, hand, other_hand)
+                o.on_split(player_id, hand, other_hand)
 
     def bank_turn(self, game_id):
         table = self.table
@@ -160,4 +157,4 @@ class BlackjackEngine:
         table.reward()
 
         for o in self.observers:
-            o.o_end_round()
+            o.on_end_round()
