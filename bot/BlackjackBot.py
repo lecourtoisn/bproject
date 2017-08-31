@@ -1,57 +1,21 @@
-from threading import Timer
-
 import emoji
 from fbchat import ThreadType
 
-from blackjack.BlackjackTable import BlackjackTable, Phase
+from bot.BlackjackEngine import BlackjackEngine, EngineObserver
 from bot.MessageEvent import MessageEvent
 from bot.MessengerBot import MultiCommandBot
 from data_cache.PCache import PCache
 
-DEBUG_THREAD_ID = "1573965122648233"
 PROD_THREAD_ID = "1526063594106602"
 
 
-def on_phase(*phases: list):
-    def decorator(func):
-        def wrapper(self, *_, **kwargs):
-            table = self.table
-            if table.phase in phases:
-                func(self, *_, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
-def playing(func):
-    def wrapper(self, m: MessageEvent, *_, **kwargs):
-        table = self.table
-        player = PCache.get(m.author_id)
-        if table.in_game(player):
-            func(self, m, *_, **kwargs)
-
-    return wrapper
-
-
-def has_valid_hand(func):
-    def wrapper(self, m: MessageEvent, *_, **kwargs):
-        table = self.table
-        player = PCache.get(m.author_id)
-        if table.has_valid_hands(player):
-            func(self, m, *_, **kwargs)
-
-    return wrapper
-
-
-class BlackjackBot(MultiCommandBot):
-    def __init__(self, client):
+class BlackjackBot(MultiCommandBot, EngineObserver):
+    def __init__(self, client, blackjack_engine: BlackjackEngine):
         super().__init__(client)
         self.casino_thread_id = PROD_THREAD_ID
-        self.table = BlackjackTable()
-        self.betting_delay = 15.0
-        self.actions_delay = 60.0
-        self.max_bet = 100
+        self.last_bet_message_id = {}
+        self.engine = blackjack_engine
+        self.engine.observers.add(self)
 
     def send_casino(self, message):
         self.client.sendMessage(message, thread_id=self.casino_thread_id, thread_type=ThreadType.GROUP)
@@ -61,107 +25,63 @@ class BlackjackBot(MultiCommandBot):
             m.message = "100"
             self.on_bet(m)
 
-    @on_phase(Phase.BETTING, Phase.NONE)
-    def on_bet(self, m: MessageEvent):
-        print("Soo")
-        table = self.table
+    def cmd_bet(self, m: MessageEvent):
+        bet = int(m.message)
         player = PCache.get(m.author_id)
         if player.name is None:
             player.name = self.client.get_author(m.author_id).name
-        bet = abs(int(m.message))
-        if bet > self.max_bet:
-            return
-        if table.phase is Phase.NONE:
-            shuffled = table.set_table()
-            self.send_casino(
-                "Nouvelle manche de Black jack, faites vos jeux. Mise maximale : {}. Vous avez {} secondes".format(
-                    str(self.max_bet), int(self.betting_delay)))
 
-            if m.thread_id != self.casino_thread_id:
-                self.answer_back(m, "Nouvelle manche de Black jack, faites vos jeux. Vous avez {} secondes".format(
-                    int(self.betting_delay)))
-            if shuffled:
-                self.send_casino("Le sabot vient d'être mélangé")
-            Timer(self.betting_delay, self.close_bets, [m]).start()
-        try:
-            self.client.addUsersToGroup([m.author_id], self.casino_thread_id)
-        except:
-            pass
+        self.last_bet_message_id[m.author_id] = m.mid
+        self.engine.bet(m.author_id, bet)
 
-        table.bet(player, bet)
-        self.react_tumb_up(m)
+    def on_new_round(self):
+        table = self.engine.table
+        self.send_casino(
+            "Nouvelle manche de Black jack, faites vos jeux. Mise maximale : {}. Vous avez {} secondes".format(
+                str(self.engine.max_bet), int(self.engine.betting_delay)))
 
-    def close_bets(self, m: MessageEvent):
-        table = self.table
-        response = ["Les jeux sont faits\n"]
-        if m.thread_id != self.casino_thread_id:
-            self.answer_back(m, response[0][:-1])
-        table.initial_distribution()
-        bank_hand = table.bank_hand
-        response.append("Première carte de la banque : {} ({})\n".format(str(bank_hand), bank_hand.readable_value))
-        for player, hand in table.get_hands():
+        if table.shuffled:
+            self.send_casino("Le sabot vient d'être mélangé")
+
+    def on_bet(self, player_id):
+        self.react_tumb_up(self.last_bet_message_id[player_id])
+
+    def on_cards_distributed(self):
+        table = self.engine.table
+        response = ["Les jeux sont faits\n",
+                    "Première carte de la banque : {} ({})\n".format(str(table.bank_hand),
+                                                                     table.bank_hand.readable_value)]
+        for player, hand in table.get_hands():  # Todo: put the formatting string in a variable
             response.append("{} : {} ({})".format(player.name, str(hand), hand.max_valid_value))
         response.append("\n/hit pour une nouvelle carte, /stand pour rester, /double pour doubler, /split pour séparer")
-        response.append("Vous avez {} secondes".format(int(self.actions_delay)))
+        response.append("Vous avez {} secondes".format(int(self.engine.actions_delay)))
+
         self.send_casino("\n".join(response))
 
-        Timer(self.actions_delay, self.bank_turn, [table.game_id]).start()
+    def cmd_hit(self, m: MessageEvent):
+        self.engine.hit(m.author_id)
 
-        if table.dealing_is_over():
-            self.bank_turn(table.game_id)
+    def on_hit(self, player_id, hand):
+        self._print_hand(player_id, hand)
 
-    @on_phase(Phase.ACTIONS)
-    @has_valid_hand
-    @playing
-    def on_hit(self, m: MessageEvent):
-        table = self.table
-        player = PCache.get(m.author_id)
-        hand = table.hit(player)
-        self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
+    def cmd_stand(self, m: MessageEvent):
+        self.engine.stand(m.author_id)
 
-        if table.dealing_is_over():
-            self.bank_turn(table.game_id)
+    def cmd_double(self, m: MessageEvent):
+        self.engine.double(m.author_id)
 
-    @on_phase(Phase.ACTIONS)
-    @has_valid_hand
-    @playing
-    def on_stand(self, m: MessageEvent):
-        table = self.table
-        player = PCache.get(m.author_id)
-        table.stand(player)
+    def on_double(self, player_id, hand):
+        self._print_hand(player_id, hand)
 
-        if table.dealing_is_over():
-            self.bank_turn(table.game_id)
+    def cmd_split(self, m: MessageEvent):
+        self.engine.split(m.author_id)
 
-    @on_phase(Phase.ACTIONS)
-    @has_valid_hand
-    @playing
-    def on_double(self, m: MessageEvent):
-        table = self.table
-        player = PCache.get(m.author_id)
-        hand = table.double(player)
-        self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
+    def on_split(self, player_id, hand, other_hand):
+        self._print_hand(player_id, hand)
+        self._print_hand(player_id, other_hand)
 
-        if table.dealing_is_over():
-            self.bank_turn(table.game_id)
-
-    @on_phase(Phase.ACTIONS)
-    @has_valid_hand
-    @playing
-    def on_split(self, m: MessageEvent):
-        table = self.table
-        player = PCache.get(m.author_id)
-        hand, other_hand = table.split_cards(player)
-        if hand is not None and other_hand is not None:
-            self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))
-            self.send_casino("{} : {} ({})".format(player.name, str(other_hand), other_hand.readable_value))
-
-    def bank_turn(self, game_id):
-        table = self.table
-        if table.phase != Phase.ACTIONS or table.game_id != game_id:
-            return
-        table.distribute_bank()
-        table.reward()
+    def on_end_round(self):
+        table = self.engine.table
         bank_hand = table.bank_hand
         response = ["Cartes de la banque: {} ({})\n".format(str(bank_hand), bank_hand.readable_value)]
         if table.bank_busted():
@@ -180,17 +100,7 @@ class BlackjackBot(MultiCommandBot):
             response.append(recap_str)
         self.send_casino("\n".join(response))
 
-    def on_debug(self, _: MessageEvent):
-        self.betting_delay = 5.0
-        self.actions_delay = 5.0
-        self.casino_thread_id = DEBUG_THREAD_ID
-
-    def on_prod(self, _: MessageEvent):
-        self.betting_delay = 30.0
-        self.actions_delay = 60.0
-        self.casino_thread_id = PROD_THREAD_ID
-
-    def on_scores(self, m: MessageEvent):
+    def cmd_scores(self, m: MessageEvent):
         response = ["[Blackjack scores]"]
         scores = [(p.name, p.cash) for p in PCache.cache.values()]
         scores = sorted(scores, key=lambda s: s[1], reverse=True)
@@ -199,7 +109,7 @@ class BlackjackBot(MultiCommandBot):
 
         self.answer_back(m, "\n".join(response))
 
-    def on_score(self, m: MessageEvent):
+    def cmd_score(self, m: MessageEvent):
         player = PCache.get(m.author_id)
         scores = [(p.name, p.cash) for p in PCache.cache.values()]
         scores = sorted(scores, key=lambda s: s[1], reverse=True)
@@ -214,9 +124,10 @@ class BlackjackBot(MultiCommandBot):
 
         self.answer_back(m, "\n".join(response))
 
-    def on_help(self, m: MessageEvent):
+    def cmd_help(self, m: MessageEvent):
         message = ["[Règles du Blackjack",
-                   "Le but du Blackjack est de tirer des cartes jusqu'à approcher le plus possible de 21 sans le dépasser",
+                   "Le but du Blackjack est de tirer des cartes jusqu'à approcher le plus possible de "
+                   "21 sans le dépasser",
                    "Le joueur gagne si sa main à plus de valeur que celle de a banque et qu'il n'a pas dépassé 21",
                    "La banque tire en dessous de 17 et reste à 17 ou plus",
                    "",
@@ -224,10 +135,15 @@ class BlackjackBot(MultiCommandBot):
                    "L'as vaut 1 ou 11 points à l'avantage du joueur",
                    "",
                    "Un as plus une tête est un Blackjack, et vous rapportera 1,5 fois votre mise en cas de victoire",
-                   "Toute combinaison de 3 carte ou plus, même si elle vaut 21 points, a moins de valeur qu'un Blackjack",
+                   "Toute combinaison de 3 carte ou plus, même si elle vaut 21 points, "
+                   "a moins de valeur qu'un Blackjack",
                    "",
                    "/hit: demande une carte suplémentaire",
                    "/double: double sa mise et demande une dernière carte",
                    "/split: si vous avez une paire, split sépare votre paire en deux jeux indépendants",
                    "/stand: signale que vous ne souhaitez plus de carte"]
         self.client.sendMessage('\n'.join(message), m.author_id)
+
+    def _print_hand(self, player_id, hand):
+        player = PCache.get(player_id)
+        self.send_casino("{} : {} ({})".format(player.name, str(hand), hand.readable_value))

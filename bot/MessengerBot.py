@@ -1,9 +1,7 @@
 from fbchat import MessageReaction
 
-from bot.MessageEvent import MessageEvent
-
-from blackjack.Player import Player
 from bot.CustomClient import CustomClient
+from bot.MessageEvent import MessageEvent
 
 
 class MessengerBot:
@@ -17,8 +15,8 @@ class MessengerBot:
     def answer_back(self, m_event: MessageEvent, message: str):
         self.client.sendMessage(message, thread_id=m_event.thread_id, thread_type=m_event.thread_type)
 
-    def react_tumb_up(self, m_event: MessageEvent):
-        self.client.reactToMessage(m_event.mid, MessageReaction.YES)
+    def react_tumb_up(self, message_id):
+        self.client.reactToMessage(message_id, MessageReaction.YES)
 
 
 class MultiCommandBot(MessengerBot):
@@ -28,7 +26,7 @@ class MultiCommandBot(MessengerBot):
         self.commands = {"/{}".format('_'.join(method.split('_')[1:])): getattr(self, method)
                          for method in dir(self)
                          if callable(getattr(self, method))
-                         if method.startswith("on_")}
+                         if method.startswith("cmd_")}
 
     def validate(self, m: MessageEvent):
         command, *rest = m.message.split(' ')

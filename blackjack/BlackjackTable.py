@@ -68,6 +68,7 @@ class BlackjackTable:
         self._player_contexts = {}
         self.deck = None
         self.game_id = 0
+        self.shuffled = False
 
     @property
     def player_contexts(self) -> Dict[Player, PlayerContext]:
@@ -75,14 +76,14 @@ class BlackjackTable:
 
     def set_table(self) -> bool:
         self.game_id += 1
-        shuffled = False
+        self.shuffled = False
         if self.deck is None or self.deck.nb_cards < 30:
             self.deck = Deck()
-            shuffled = True
+            self.shuffled = True
         self.bank_hand = Hand()
         self._player_contexts = {}
         self.phase = Phase.BETTING
-        return shuffled
+        return self.shuffled
 
     def bet(self, player: Player, bet):
         self.player_contexts[player] = PlayerContext(player, bet)
