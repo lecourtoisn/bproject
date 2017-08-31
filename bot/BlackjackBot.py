@@ -23,7 +23,7 @@ class BlackjackBot(MultiCommandBot, EngineObserver):
     def any(self, m: MessageEvent):
         if m.thread_id == self.casino_thread_id and m.message == emoji.emojize(":money_with_wings:"):
             m.message = "100"
-            self.on_bet(m)
+            self.cmd_bet(m)
 
     def cmd_bet(self, m: MessageEvent):
         bet = int(m.message)
