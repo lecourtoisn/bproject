@@ -1,5 +1,7 @@
 import json
 import os
+import traceback
+from time import sleep
 
 from bot.BlackjackBot import BlackjackBot
 from bot.BlackjackEngine import BlackjackEngine
@@ -20,7 +22,12 @@ if __name__ == '__main__':
         with open(SESSION_FILE) as file:
             session = json.load(file)
 
-    client = CustomClient(email, password, session=session)
     engine = BlackjackEngine()
-    m = BlackjackBot(client, engine)
-    client.listen()
+    while True:
+        client = CustomClient(email, password, session=session)
+        m = BlackjackBot(client, engine)
+        try:
+            client.listen()
+        except:
+            traceback.print_exc()
+            sleep(5)
