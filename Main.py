@@ -2,6 +2,8 @@ import json
 import os
 
 from bot.BlackjackBot import BlackjackBot
+from bot.BlackjackBotSecond import BlackjackBotSecond
+from bot.BlackjackEngine import BlackjackEngine
 from bot.CustomClient import CustomClient
 from data_cache.PCache import PCache
 
@@ -18,5 +20,7 @@ if __name__ == '__main__':
             session = json.load(file)
 
     client = CustomClient(email, password, session=session)
-    m = BlackjackBot(client)
+    # m = BlackjackBot(client)
+    engine = BlackjackEngine()
+    m = BlackjackBotSecond(client, engine)
     client.listen()

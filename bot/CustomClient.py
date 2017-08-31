@@ -14,6 +14,8 @@ class CustomClient(Client):
                   metadata=None, msg=None):
         if msg is None:
             msg = {}
+        if thread_id != "367920366739208":
+            return
         m_event = MessageEvent(mid, author_id, message, thread_id, thread_type, ts, metadata, msg)
         for validate in self.functions:
             validate(m_event)

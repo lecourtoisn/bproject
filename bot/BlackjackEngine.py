@@ -69,8 +69,8 @@ class EngineObserver(object):
 class BlackjackEngine:
     def __init__(self):
         self.table = BlackjackTable()
-        self.betting_delay = 15.0
-        self.actions_delay = 60.0
+        self.betting_delay = 1.0
+        self.actions_delay = 5.0
         self.max_bet = 100
         self.observers = set()
 
@@ -81,15 +81,16 @@ class BlackjackEngine:
         player = PCache.get(player_id)
         if bet > self.max_bet:
             return  # todo throw exception
-        if table.phase is Phase.NONE:
+        new_round = table.phase is Phase.NONE
+        if new_round:
             table.set_table()
+            Timer(self.betting_delay, self.close_bets).start()
+        table.bet(player, bet)
+        if new_round:
             for o in self.observers:
                 o.o_new_round()
-            Timer(self.betting_delay, self.close_bets).start()
-
         for o in self.observers:
             o.o_bet(player_id)
-        table.bet(player, bet)
 
     def close_bets(self):
         table = self.table

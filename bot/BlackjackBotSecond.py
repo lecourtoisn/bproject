@@ -7,8 +7,10 @@ from bot.MessengerBot import MultiCommandBot
 from data_cache.PCache import PCache
 
 DEBUG_THREAD_ID = "1573965122648233"
-PROD_THREAD_ID = "1526063594106602"
+PROD_THREAD_ID = "367920366739208"
 
+
+# PROD_THREAD_ID = "1526063594106602"
 
 class BlackjackBotSecond(MultiCommandBot, EngineObserver):
     def __init__(self, client, blackjack_engine: BlackjackEngine):
@@ -32,13 +34,14 @@ class BlackjackBotSecond(MultiCommandBot, EngineObserver):
         if player.name is None:
             player.name = self.client.get_author(m.author_id).name
 
+        self.last_bet_message_id[m.author_id] = m.mid
         self.engine.bet(m.author_id, bet)
 
     def o_new_round(self):
         table = self.engine.table
         self.send_casino(
             "Nouvelle manche de Black jack, faites vos jeux. Mise maximale : {}. Vous avez {} secondes".format(
-                str(table.max_bet), int(table.betting_delay)))
+                str(self.engine.max_bet), int(self.engine.betting_delay)))
 
         if table.shuffled:
             self.send_casino("Le sabot vient d'être mélangé")
@@ -54,8 +57,9 @@ class BlackjackBotSecond(MultiCommandBot, EngineObserver):
         for player, hand in table.get_hands():  # Todo: put the formatting string in a variable
             response.append("{} : {} ({})".format(player.name, str(hand), hand.max_valid_value))
         response.append("\n/hit pour une nouvelle carte, /stand pour rester, /double pour doubler, /split pour séparer")
-        response.append("Vous avez {} secondes".format(int(table.actions_delay)))
+        response.append("Vous avez {} secondes".format(int(self.engine.actions_delay)))
 
+        self.send_casino("\n".join(response))
     def on_hit(self, m: MessageEvent):
         self.engine.hit(m.author_id)
 
@@ -79,7 +83,24 @@ class BlackjackBotSecond(MultiCommandBot, EngineObserver):
         self._print_hand(player_id, other_hand)
 
     def o_end_round(self):
-        pass
+        table = self.engine.table
+        bank_hand = table.bank_hand
+        response = ["Cartes de la banque: {} ({})\n".format(str(bank_hand), bank_hand.readable_value)]
+        if table.bank_busted():
+            response.append("💀 La banque a sauté, tous les joueurs encore en jeux sont gagnants\n")
+        else:
+            response.append("La banque marque {} points".format(bank_hand.max_valid_value))
+
+        for player, hand, win, bet in table.summary():
+            if win is True:
+                ending_str = "Gain de {} 💲".format(bet)
+            elif win is False:
+                ending_str = "Perte de {} 💀".format(abs(bet))
+            else:
+                ending_str = "Egalité, aucun gain, aucune perte"
+            recap_str = "{} : {} ({}) => {}".format(player.name, str(hand), hand.readable_value, ending_str)
+            response.append(recap_str)
+        self.send_casino("\n".join(response))
 
     def on_scores(self, m: MessageEvent):
         response = ["[Blackjack scores]"]
