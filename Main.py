@@ -26,9 +26,12 @@ if __name__ == '__main__':
     while True:
         client = CustomClient(email, password, session=session)
         m = BlackjackBot(client, engine)
+        print(engine.observers)
         try:
             client.listen()
         except:
             traceback.print_exc()
+            # if client.isLoggedIn():
+            client.logout()
             engine.observers.remove(client)
             sleep(5)
