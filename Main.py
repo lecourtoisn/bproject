@@ -30,4 +30,5 @@ if __name__ == '__main__':
             client.listen()
         except:
             traceback.print_exc()
+            engine.observers.remove(client)
             sleep(5)
