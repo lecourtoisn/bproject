@@ -6,13 +6,11 @@ from bot.MessageEvent import MessageEvent
 from bot.MessengerBot import MultiCommandBot
 from data_cache.PCache import PCache
 
-PROD_THREAD_ID = "1526063594106602"
-
 
 class BlackjackBot(MultiCommandBot, EngineObserver):
-    def __init__(self, client, blackjack_engine: BlackjackEngine):
-        super().__init__(client)
-        self.casino_thread_id = PROD_THREAD_ID
+    def __init__(self, client, blackjack_engine: BlackjackEngine, casino_thread_id, threads=None):
+        super().__init__(client, threads)
+        self.casino_thread_id = casino_thread_id
         self.last_bet_message_id = {}
         self.engine = blackjack_engine
         self.engine.observers.add(self)
@@ -44,7 +42,7 @@ class BlackjackBot(MultiCommandBot, EngineObserver):
             self.send_casino("Le sabot vient d'être mélangé")
 
     def on_bet(self, player_id):
-        self.react_tumb_up(self.last_bet_message_id[player_id])
+        self.react_thumb_up(self.last_bet_message_id[player_id])
 
     def on_cards_distributed(self):
         table = self.engine.table
