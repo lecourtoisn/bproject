@@ -3,6 +3,8 @@ import os
 import traceback
 from time import sleep
 
+import requests
+
 from bot.BlackjackBot import BlackjackBot
 from bot.BlackjackEngine import BlackjackEngine
 from bot.CustomClient import CustomClient
@@ -29,7 +31,7 @@ if __name__ == '__main__':
         print(engine.observers)
         try:
             client.listen()
-        except:
+        except requests.exceptions.ConnectionError:
             traceback.print_exc()
             # if client.isLoggedIn():
             client.logout()
