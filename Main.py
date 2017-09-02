@@ -16,6 +16,8 @@ SESSION_FILE = "session.txt"
 CASINO_THREAD_ID = "1526063594106602"
 DB_PATH = "data_cache/db.json"
 BACKUP_DB_PATH = "data_cache/db_backup.json"
+BETTING_DELAY = 15.0
+ACTIONS_DELAY = 60.0
 
 DEBUG_THREAD_ID = "1573965122648233"
 DEBUG_DB_PATH = "data_cache/debug_db.json"
@@ -27,8 +29,8 @@ DEBUG_ACTIONS_DELAY = 15.0
 @click.command()
 @click.option('--debug', is_flag=True)
 def start(debug):
-    betting_delay = DEBUG_BETTING_DELAY if debug else None
-    actions_delay = DEBUG_ACTIONS_DELAY if debug else None
+    betting_delay = DEBUG_BETTING_DELAY if debug else BETTING_DELAY
+    actions_delay = DEBUG_ACTIONS_DELAY if debug else ACTIONS_DELAY
     casino_thread_id = DEBUG_THREAD_ID if debug else CASINO_THREAD_ID
     db_path = DEBUG_DB_PATH if debug else DB_PATH
     backup_db_path = DEBUG_BACKUP_DB_PATH if debug else BACKUP_DB_PATH

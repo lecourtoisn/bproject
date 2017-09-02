@@ -64,7 +64,7 @@ class EngineObserver(object):
 
 
 class BlackjackEngine:
-    def __init__(self, betting_delay=15.0, actions_delay=60.0):
+    def __init__(self, betting_delay, actions_delay):
         self.table = BlackjackTable()
         self.betting_delay = betting_delay
         self.actions_delay = actions_delay
