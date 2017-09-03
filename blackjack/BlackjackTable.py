@@ -13,11 +13,15 @@ class Phase(Enum):
 
 
 class HandContext:
+    ID = 0
+
     def __init__(self, hand):
         self.hand = hand
         self.doubled = False
         self.is_split = False
         self.stood = False
+        HandContext.ID += 1
+        self.id = HandContext.ID
 
     def min_value(self):
         return min(self.hand.value)
