@@ -26,6 +26,12 @@ DEBUG_BETTING_DELAY = 5.0
 DEBUG_ACTIONS_DELAY = 15.0
 
 
+def fetch_session():
+    if os.path.exists(SESSION_FILE):
+        with open(SESSION_FILE) as file:
+            return json.load(file)
+
+
 @click.command()
 @click.option('--debug', is_flag=True)
 def start(debug):
@@ -43,22 +49,16 @@ def start(debug):
     PCache.set_paths(db_path, backup_db_path)
     PCache.load_all()
 
-    session = None
-    if os.path.exists(SESSION_FILE):
-        with open(SESSION_FILE) as file:
-            session = json.load(file)
+    session = fetch_session()
 
-    engine = BlackjackEngine(betting_delay, actions_delay)
     while True:
         client = CustomClient(email, password, session=session)
+        engine = BlackjackEngine(betting_delay, actions_delay)
         BlackjackBot(client, engine, casino_thread_id, threads=[casino_thread_id])
-        print(engine.observers)
         try:
             client.listen()
-        except requests.exceptions.ConnectionError:
+        except Exception:
             traceback.print_exc()
-            client.logout()
-            engine.observers.remove(client)
             sleep(5)
 
 
