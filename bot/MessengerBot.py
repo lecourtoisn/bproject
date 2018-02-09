@@ -6,8 +6,6 @@ from bot.MessageEvent import MessageEvent
 
 class MessengerBot:
     def __init__(self, client: CustomClient, threads: list = None):
-        if threads is None:
-            threads = []
         self.threads = threads
         self.client = client
         self.client.set_action(self.validate)
