@@ -54,9 +54,9 @@ def start(debug):
     while True:
         client = CustomClient(email, password, session=session)
         engine = BlackjackEngine(betting_delay, actions_delay)
-        BlackjackBot(client, engine, casino_thread_id, threads=[casino_thread_id])
+        bot = BlackjackBot(client, engine, casino_thread_id, threads=[casino_thread_id])
         try:
-            client.listen()
+            bot.listen()
         except Exception:
             traceback.print_exc()
             sleep(5)

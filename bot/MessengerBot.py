@@ -13,7 +13,7 @@ class MessengerBot:
         self.client.set_action(self.validate)
 
     def validate(self, m_event: MessageEvent):
-        if not self.threads or m_event.thread_id in self.threads:
+        if self.threads is None or m_event.thread_id in self.threads:
             self.action(m_event)
 
     def action(self, m_event: MessageEvent):
@@ -24,6 +24,9 @@ class MessengerBot:
 
     def react_thumb_up(self, message_id):
         self.client.reactToMessage(message_id, MessageReaction.YES)
+
+    def listen(self):
+        self.client.listen()
 
 
 class MultiCommandBot(MessengerBot):
